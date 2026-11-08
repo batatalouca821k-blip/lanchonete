@@ -1,4 +1,4 @@
-import { authenticateLogin, bearerToken, confirmEmailManually, createUser, getAccesses, logout as endSession, verifyEmail } from "../services/authService.js";
+import { archiveUser as archiveUserAccount, authenticateLogin, bearerToken, confirmEmailManually, createUser, getAccesses, logout as endSession, resetPassword as resetUserPasswordAccount, restoreUser as restoreUserAccount, verifyEmail } from "../services/authService.js";
 import { listUsersOverview } from "../services/accountService.js";
 
 export async function login(req, res) {
@@ -19,7 +19,23 @@ export function me(req, res) {
 }
 
 export async function listUsers(req, res) {
-  res.json(await listUsersOverview({ search: String(req.query.search || ""), page: req.query.page, pageSize: req.query.pageSize }));
+  res.json(await listUsersOverview({ search: String(req.query.search || ""), archived: req.query.archived === "true", page: req.query.page, pageSize: req.query.pageSize }));
+}
+
+export async function archiveUser(req, res) {
+  res.json(await archiveUserAccount(req.params.id, { actor: req.user, ip: req.ip }));
+}
+
+export async function restoreUser(req, res) {
+  res.json(await restoreUserAccount(req.params.id, { actor: req.user, ip: req.ip }));
+}
+
+export async function resetUserPassword(req, res) {
+  res.json(await resetUserPasswordAccount(req.params.id, req.body?.password, {
+    actor: req.user,
+    ip: req.ip,
+    sessionToken: req.sessionToken
+  }));
 }
 
 export async function listAccesses(_req, res) {

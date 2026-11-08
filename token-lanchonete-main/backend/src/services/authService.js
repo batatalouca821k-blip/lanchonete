@@ -38,7 +38,7 @@ export async function authenticateLogin(email, password, request) {
   const key = attemptKey(request.ip, email);
   if (isBlocked(key)) throw new HttpError(429, "Muitas tentativas de login. Aguarde alguns minutos e tente novamente.");
 
-  const row = await queryOne("SELECT * FROM users WHERE email = ?", [email]);
+  const row = await queryOne("SELECT * FROM users WHERE email = ? AND deleted_at IS NULL", [email]);
   const valid = row ? await verifyPassword(password, { salt: row.salt, passwordHash: row.password_hash }) : false;
   if (!valid) { registerFailure(key); return null; }
   if (!row.email_verified) throw new HttpError(403, "Confirme seu e-mail antes de entrar.");
@@ -70,7 +70,7 @@ export async function requireAuth(req, res, next) {
   const token = bearerToken(req);
   if (!token) return res.status(401).json({ message: "Sessão expirada. Faça login novamente." });
   const row = await queryOne(
-    `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?`,
+    `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ? AND u.deleted_at IS NULL`,
     [sha256(token), new Date()]
   );
   if (!row) return res.status(401).json({ message: "Sessão expirada. Faça login novamente." });
@@ -124,7 +124,8 @@ export async function createUser(data, { actor, ip } = {}) {
 
 export async function verifyEmail(token) {
   const verification = await queryOne(
-    "SELECT * FROM email_verifications WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?",
+    `SELECT v.* FROM email_verifications v JOIN users u ON u.id = v.user_id
+     WHERE v.token_hash = ? AND v.used_at IS NULL AND v.expires_at > ? AND u.deleted_at IS NULL`,
     [sha256(String(token || "")), new Date()]
   );
   if (!verification) return false;
@@ -137,13 +138,84 @@ export async function verifyEmail(token) {
 }
 
 export async function confirmEmailManually(userId, { actor, ip }) {
-  const user = await queryOne("SELECT * FROM users WHERE id = ?", [userId]);
+  const user = await queryOne("SELECT * FROM users WHERE id = ? AND deleted_at IS NULL", [userId]);
   if (!user) throw new HttpError(404, "Usuário não encontrado.");
   await transaction(async conn => {
     await query("UPDATE users SET email_verified = TRUE WHERE id = ?", [userId], conn);
     await audit(conn, { actor, ip, action: "verify-manual", entity: "user", entityId: userId, details: { email: user.email } });
   });
   return publicUser({ ...user, email_verified: true });
+}
+
+export async function archiveUser(userId, { actor, ip }) {
+  if (userId === actor.id) throw new HttpError(409, "Você não pode arquivar sua própria conta.");
+
+  return transaction(async conn => {
+    let activeAdminCount = 0;
+    const candidate = await queryOne("SELECT role FROM users WHERE id = ? AND deleted_at IS NULL", [userId], conn);
+    if (!candidate) throw new HttpError(404, "Usuário não encontrado ou já arquivado.");
+    if (candidate.role === "admin") {
+      const admins = await query(
+        "SELECT id FROM users WHERE role = 'admin' AND deleted_at IS NULL ORDER BY id FOR UPDATE",
+        [],
+        conn
+      );
+      activeAdminCount = admins.length;
+    }
+
+    const user = await queryOne("SELECT * FROM users WHERE id = ? AND deleted_at IS NULL FOR UPDATE", [userId], conn);
+    if (!user) throw new HttpError(404, "Usuário não encontrado ou já arquivado.");
+    if (user.role === "admin" && activeAdminCount <= 1) {
+      throw new HttpError(409, "Não é possível arquivar o último administrador ativo.");
+    }
+
+    const deletedAt = new Date();
+    await query("UPDATE users SET deleted_at = ? WHERE id = ?", [deletedAt, userId], conn);
+    await query("DELETE FROM sessions WHERE user_id = ?", [userId], conn);
+    await query("DELETE FROM email_verifications WHERE user_id = ?", [userId], conn);
+    await audit(conn, {
+      actor, ip, action: "archive", entity: "user", entityId: userId,
+      details: { email: user.email, name: user.name, role: user.role, deletedAt }
+    });
+    return { id: userId, archived: true };
+  });
+}
+
+export async function restoreUser(userId, { actor, ip }) {
+  return transaction(async conn => {
+    const user = await queryOne("SELECT * FROM users WHERE id = ? AND deleted_at IS NOT NULL FOR UPDATE", [userId], conn);
+    if (!user) throw new HttpError(404, "Usuário arquivado não encontrado.");
+    await query("UPDATE users SET deleted_at = NULL WHERE id = ?", [userId], conn);
+    await audit(conn, {
+      actor, ip, action: "restore", entity: "user", entityId: userId,
+      details: { email: user.email, name: user.name, role: user.role }
+    });
+    return { id: userId, archived: false };
+  });
+}
+
+export async function resetPassword(userId, password, { actor, ip, sessionToken }) {
+  const newPassword = String(password || "");
+  if (newPassword.length < 8) throw new HttpError(400, "A senha deve ter pelo menos 8 caracteres.");
+  if (newPassword.length > 128) throw new HttpError(400, "A senha deve ter no máximo 128 caracteres.");
+
+  const record = await hashPassword(newPassword);
+  return transaction(async conn => {
+    const user = await queryOne("SELECT * FROM users WHERE id = ? AND deleted_at IS NULL FOR UPDATE", [userId], conn);
+    if (!user) throw new HttpError(404, "Usuário ativo não encontrado.");
+
+    await query("UPDATE users SET password_hash = ?, salt = ? WHERE id = ?", [record.passwordHash, record.salt, userId], conn);
+    if (userId === actor.id && sessionToken) {
+      await query("DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?", [userId, sha256(sessionToken)], conn);
+    } else {
+      await query("DELETE FROM sessions WHERE user_id = ?", [userId], conn);
+    }
+    await audit(conn, {
+      actor, ip, action: "password-reset", entity: "user", entityId: userId,
+      details: { email: user.email }
+    });
+    return { id: userId, passwordReset: true };
+  });
 }
 
 export async function getAccesses({ limit = 300 } = {}) {

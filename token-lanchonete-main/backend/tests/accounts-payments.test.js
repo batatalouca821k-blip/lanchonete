@@ -67,6 +67,64 @@ describe("cadastro e login", () => {
     assert.equal(invalid.status, 400);
   });
 
+  test("administrador arquiva e restaura usuário sem apagar os dados ou manter sessões ativas", async () => {
+    const customer = await createUserDirect({ name: "Cliente para arquivar", email: "arquivar@teste.com" });
+    const customerToken = await server.login(customer);
+    const product = await createProductDirect({ name: "Registro mantido", price: 12 });
+    const addedItem = await server.api("POST", `/api/admin/users/${customer.id}/items`, {
+      token: adminToken,
+      body: { productId: product.id, quantity: 1 }
+    });
+    assert.equal(addedItem.status, 201);
+
+    const archived = await server.api("DELETE", `/api/admin/users/${customer.id}`, { token: adminToken });
+    assert.equal(archived.status, 200);
+    assert.equal(archived.data.archived, true);
+    assert.equal((await server.api("GET", "/api/auth/me", { token: customerToken })).status, 401);
+    assert.equal((await server.api("POST", "/api/auth/login", { body: { email: customer.email, password: customer.password } })).status, 401);
+
+    const activeUsers = await server.api("GET", "/api/admin/users", { token: adminToken });
+    assert.equal(activeUsers.data.rows.some(user => user.id === customer.id), false);
+    const archivedUsers = await server.api("GET", "/api/admin/users?archived=true", { token: adminToken });
+    const archivedUser = archivedUsers.data.rows.find(user => user.id === customer.id);
+    assert.ok(archivedUser);
+    assert.equal(archivedUser.accountsCount, 1);
+    assert.equal(archivedUser.totalBilled, 12);
+    const archivedProfile = await server.api("GET", `/api/admin/users/${customer.id}`, { token: adminToken });
+    assert.equal(archivedProfile.data.profile.archived, true);
+    assert.equal(archivedProfile.data.accounts.count, 1);
+
+    const restored = await server.api("POST", `/api/admin/users/${customer.id}/restore`, { token: adminToken });
+    assert.equal(restored.status, 200);
+    assert.equal(restored.data.archived, false);
+    assert.equal((await server.api("POST", "/api/auth/login", { body: { email: customer.email, password: customer.password } })).status, 200);
+
+    const reset = await server.api("PATCH", `/api/admin/users/${customer.id}/password`, {
+      token: adminToken,
+      body: { password: "NovaSenha@123" }
+    });
+    assert.equal(reset.status, 200);
+    assert.equal(reset.data.passwordReset, true);
+    assert.equal((await server.api("POST", "/api/auth/login", { body: { email: customer.email, password: customer.password } })).status, 401);
+    assert.equal((await server.api("POST", "/api/auth/login", { body: { email: customer.email, password: "NovaSenha@123" } })).status, 200);
+
+    const shortPassword = await server.api("PATCH", `/api/admin/users/${customer.id}/password`, {
+      token: adminToken,
+      body: { password: "curta" }
+    });
+    assert.equal(shortPassword.status, 400);
+  });
+
+  test("administrador não pode arquivar a própria conta nem repetir arquivamento", async () => {
+    const self = await server.api("DELETE", `/api/admin/users/${admin.id}`, { token: adminToken });
+    assert.equal(self.status, 409);
+
+    const customer = await createUserDirect({ email: "arquivado-uma-vez@teste.com" });
+    assert.equal((await server.api("DELETE", `/api/admin/users/${customer.id}`, { token: adminToken })).status, 200);
+    const repeated = await server.api("DELETE", `/api/admin/users/${customer.id}`, { token: adminToken });
+    assert.equal(repeated.status, 404);
+  });
+
   test("login inválido, sem token e logout", async () => {
     const user = await createUserDirect({ email: "login@teste.com" });
     assert.equal((await server.api("POST", "/api/auth/login", { body: { email: user.email, password: "errada" } })).status, 401);
@@ -90,7 +148,7 @@ describe("cadastro e login", () => {
 describe("permissões", () => {
   test("usuário comum não acessa rotas administrativas", async () => {
     const { token } = await newCustomer();
-    for (const [method, path] of [["GET", "/api/admin/users"], ["GET", "/api/admin/report"], ["GET", "/api/admin/accounts"], ["GET", "/api/admin/payments"], ["GET", "/api/admin/audit"], ["POST", "/api/admin/payment-methods"]]) {
+    for (const [method, path] of [["GET", "/api/admin/users"], ["GET", "/api/admin/report"], ["GET", "/api/admin/accounts"], ["GET", "/api/admin/payments"], ["GET", "/api/admin/audit"], ["POST", "/api/admin/payment-methods"], ["DELETE", "/api/admin/users/alvo"], ["POST", "/api/admin/users/alvo/restore"], ["PATCH", "/api/admin/users/alvo/password"]]) {
       assert.equal((await server.api(method, path, { token, body: method === "POST" ? { name: "x" } : undefined })).status, 403, `${method} ${path}`);
     }
     const attemptedPromotion = await server.api("POST", "/api/admin/users", {

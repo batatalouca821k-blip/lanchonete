@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, MailCheck, PackagePlus, UserPlus, Users } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, KeyRound, MailCheck, PackagePlus, Trash2, UserPlus, Users } from "lucide-react";
 import { api } from "../services/api.js";
 import { useAsync, useDebounced } from "../lib/hooks.js";
 import { date, dateTime, formatBrazilianDateInput, money, parseBrazilianDateInput } from "../lib/format.js";
@@ -11,11 +11,12 @@ import { Badge, Button, EmptyState, ErrorState, Field, Modal, PageHeader, Pagina
 const emptyForm = { name: "", cpf: "", birthDate: "", phone: "", email: "", password: "", role: "user" };
 
 export function AdminUsers({ navigate }) {
-  const { toast } = useFeedback();
+  const { toast, confirm } = useFeedback();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [showArchived, setShowArchived] = useState(false);
   const debounced = useDebounced(search);
-  const { data, loading, error, reload } = useAsync(() => api.adminUsers({ search: debounced, page, pageSize: 15 }), [debounced, page]);
+  const { data, loading, error, reload } = useAsync(() => api.adminUsers({ search: debounced, archived: showArchived, page, pageSize: 15 }), [debounced, page, showArchived]);
   const [creating, setCreating] = useState(false);
   const [addingFor, setAddingFor] = useState(null);
 
@@ -23,17 +24,47 @@ export function AdminUsers({ navigate }) {
     try { await api.confirmUserEmail(user.id); toast.success(`E-mail de ${user.name} confirmado.`); reload(); } catch (confirmError) { toast.error(confirmError.message); }
   }
 
+  async function archive(user) {
+    const answer = await confirm({
+      title: "Arquivar usuário",
+      danger: true,
+      confirmLabel: "Arquivar usuário",
+      message: `Arquivar ${user.name}? O acesso será bloqueado e as sessões encerradas. O histórico de contas e pagamentos será preservado. Você poderá restaurar o usuário depois.`
+    });
+    if (!answer) return;
+    try {
+      await api.archiveUser(user.id);
+      toast.success(`${user.name} foi arquivado.`);
+      reload();
+    } catch (archiveError) {
+      toast.error(archiveError.message);
+    }
+  }
+
+  async function restore(user) {
+    try {
+      await api.restoreUser(user.id);
+      toast.success(`${user.name} foi restaurado.`);
+      reload();
+    } catch (restoreError) {
+      toast.error(restoreError.message);
+    }
+  }
+
   return (
     <section>
-      <PageHeader eyebrow="ADMINISTRAÇÃO" title="Usuários" subtitle="Cadastre clientes, consulte as contas de cada um e lance itens."
-        actions={<Button variant="primary" icon={UserPlus} onClick={() => setCreating(true)}>Cadastrar usuário</Button>} />
+      <PageHeader eyebrow="ADMINISTRAÇÃO" title={showArchived ? "Usuários arquivados" : "Usuários"} subtitle={showArchived ? "Contas arquivadas não podem entrar no sistema. O histórico financeiro permanece preservado." : "Cadastre clientes, consulte as contas de cada um e lance itens."}
+        actions={<>
+          <Button icon={showArchived ? Users : Archive} onClick={() => { setShowArchived(current => !current); setPage(1); setSearch(""); }}>{showArchived ? "Ver ativos" : "Ver arquivados"}</Button>
+          {!showArchived && <Button variant="primary" icon={UserPlus} onClick={() => setCreating(true)}>Cadastrar usuário</Button>}
+        </>} />
       <Panel>
         <div className="filters" role="search">
           <div className="field grow"><label htmlFor="user-search">Buscar usuário</label><input id="user-search" type="search" placeholder="Nome, e-mail ou telefone" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} /></div>
         </div>
         {loading && !data && <Spinner />}
         {error && !data && <ErrorState message={error} onRetry={reload} />}
-        {data && !data.rows.length && <EmptyState icon={Users} title="Nenhum usuário encontrado" />}
+        {data && !data.rows.length && <EmptyState icon={showArchived ? Archive : Users} title={showArchived ? "Nenhum usuário arquivado" : "Nenhum usuário encontrado"} />}
         {data?.rows.length > 0 && (
           <div className="table-wrap">
             <table className="table responsive">
@@ -42,14 +73,19 @@ export function AdminUsers({ navigate }) {
                 {data.rows.map(user => (
                   <tr key={user.id}>
                     <td data-label="Usuário"><button className="link strong" onClick={() => navigate(`admin/usuarios/${user.id}`)}>{user.name}</button><small>{user.email}</small><small>{user.phone}</small></td>
-                    <td data-label="Perfil"><Badge tone={user.role === "admin" ? "accent" : "muted"}>{user.role === "admin" ? "Administrador" : "Cliente"}</Badge>{!user.emailVerified && <Badge tone="warn">E-mail pendente</Badge>}</td>
+                    <td data-label="Perfil"><Badge tone={user.role === "admin" ? "accent" : "muted"}>{user.role === "admin" ? "Administrador" : "Cliente"}</Badge>{showArchived && <Badge tone="warn">Arquivado</Badge>}{!showArchived && !user.emailVerified && <Badge tone="warn">E-mail pendente</Badge>}</td>
                     <td data-label="Saldo em aberto" className="num money">{money(user.openBalance)}<small>{user.unpaidAccounts} conta(s) aberta(s)</small></td>
                     <td data-label="Total pago" className="num money text-ok">{money(user.totalPaid)}</td>
                     <td data-label="Última movimentação">{user.lastActivity ? dateTime(user.lastActivity) : "—"}</td>
                     <td className="actions">
-                      <Button size="sm" onClick={() => navigate(`admin/usuarios/${user.id}`)}>Ver contas</Button>
-                      <Button size="sm" icon={PackagePlus} onClick={() => setAddingFor(user)}>Lançar item</Button>
-                      {!user.emailVerified && <Button size="sm" icon={MailCheck} onClick={() => confirmEmail(user)}>Confirmar e-mail</Button>}
+                      {showArchived
+                        ? <Button size="sm" icon={ArchiveRestore} onClick={() => restore(user)}>Restaurar</Button>
+                        : <>
+                            <Button size="sm" onClick={() => navigate(`admin/usuarios/${user.id}`)}>Ver contas</Button>
+                            <Button size="sm" icon={PackagePlus} onClick={() => setAddingFor(user)}>Lançar item</Button>
+                            {!user.emailVerified && <Button size="sm" icon={MailCheck} onClick={() => confirmEmail(user)}>Confirmar e-mail</Button>}
+                            <Button size="sm" variant="ghost-danger" icon={Trash2} onClick={() => archive(user)}>Excluir</Button>
+                          </>}
                     </td>
                   </tr>
                 ))}
@@ -123,19 +159,57 @@ function CreateUserModal({ onClose, onCreated }) {
 }
 
 export function AdminUserDetail({ userId, navigate }) {
+  const { toast, confirm } = useFeedback();
   const [filters, setFilters] = useState({ page: 1 });
   const { data, loading, error, reload } = useAsync(() => api.adminUser(userId, { ...filters, pageSize: 10 }), [userId, JSON.stringify(filters)]);
   const [open, setOpen] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   if (loading && !data) return <Spinner />;
   if (error && !data) return <ErrorState message={error} onRetry={reload} />;
   const { profile, accounts } = data;
 
+  async function archiveProfile() {
+    const answer = await confirm({
+      title: "Arquivar usuário",
+      danger: true,
+      confirmLabel: "Arquivar usuário",
+      message: `Arquivar ${profile.name}? O acesso será bloqueado e as sessões encerradas. O histórico de contas e pagamentos será preservado. Você poderá restaurar o usuário depois.`
+    });
+    if (!answer) return;
+    try {
+      await api.archiveUser(profile.id);
+      toast.success(`${profile.name} foi arquivado.`);
+      navigate("admin/usuarios");
+    } catch (archiveError) {
+      toast.error(archiveError.message);
+    }
+  }
+
+  async function restoreProfile() {
+    try {
+      await api.restoreUser(profile.id);
+      toast.success(`${profile.name} foi restaurado.`);
+      reload();
+    } catch (restoreError) {
+      toast.error(restoreError.message);
+    }
+  }
+
   return (
     <section>
-      <PageHeader eyebrow="USUÁRIO" title={profile.name} subtitle={`${profile.email} · ${profile.phone} · cliente desde ${date(profile.createdAt)}`}
-        actions={<><Button icon={ArrowLeft} onClick={() => navigate("admin/usuarios")}>Voltar</Button><Button variant="primary" icon={PackagePlus} onClick={() => setAdding(true)}>Lançar item</Button></>} />
+      <PageHeader eyebrow="USUÁRIO" title={profile.name} subtitle={`${profile.email} · ${profile.phone} · ${profile.archived ? "arquivado" : `cliente desde ${date(profile.createdAt)}`}`}
+        actions={<>
+          <Button icon={ArrowLeft} onClick={() => navigate("admin/usuarios")}>Voltar</Button>
+          {profile.archived
+            ? <Button icon={ArchiveRestore} onClick={restoreProfile}>Restaurar usuário</Button>
+            : <>
+                <Button icon={KeyRound} onClick={() => setResettingPassword(true)}>Redefinir senha</Button>
+                <Button variant="ghost-danger" icon={Trash2} onClick={archiveProfile}>Excluir usuário</Button>
+                <Button variant="primary" icon={PackagePlus} onClick={() => setAdding(true)}>Lançar item</Button>
+              </>}
+        </>} />
       <div className="stat-grid">
         <StatCard label="Total faturado" value={money(profile.totalBilled)} />
         <StatCard label="Total pago" value={money(profile.totalPaid)} tone="ok" />
@@ -149,6 +223,45 @@ export function AdminUserDetail({ userId, navigate }) {
       </Panel>
       {open && <AccountDetailModal admin accountId={open} onClose={() => setOpen(null)} onChanged={reload} />}
       {adding && <ItemFormModal userId={userId} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
+      {resettingPassword && <ResetPasswordModal user={profile} onClose={() => setResettingPassword(false)} onSaved={() => setResettingPassword(false)} />}
     </section>
+  );
+}
+
+function ResetPasswordModal({ user, onClose, onSaved }) {
+  const { toast } = useFeedback();
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(event) {
+    event.preventDefault();
+    setError("");
+    setSaving(true);
+    try {
+      await api.resetUserPassword(user.id, password);
+      toast.success(`Senha de ${user.name} redefinida. As outras sessões foram encerradas.`);
+      onSaved();
+    } catch (resetError) {
+      setError(resetError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title={`Redefinir senha de ${user.name}`} onClose={onClose}>
+      <form onSubmit={submit} className="form-stack">
+        <p className="muted">Defina uma nova senha e repasse-a diretamente ao usuário. Por segurança, ela não será enviada por e-mail.</p>
+        <Field label="Nova senha" htmlFor="reset-user-password" hint="Use de 8 a 128 caracteres. A senha não poderá ser consultada depois.">
+          <input id="reset-user-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={event => setPassword(event.target.value)} required autoFocus />
+        </Field>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="modal-actions">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" variant="primary" loading={saving}>Redefinir senha</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

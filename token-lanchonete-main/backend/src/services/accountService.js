@@ -214,7 +214,7 @@ export async function addProductForUser({ user, productId, quantity, ip }) {
 export async function addItemForUser({ actor, userId, productId, name, quantity, unitPriceCents, note, ip }) {
   const qty = parseQuantity(quantity);
   return transaction(async conn => {
-    const customer = await queryOne("SELECT id FROM users WHERE id = ?", [userId], conn);
+    const customer = await queryOne("SELECT id FROM users WHERE id = ? AND deleted_at IS NULL", [userId], conn);
     if (!customer) throw new HttpError(404, "Usuário não encontrado.");
     let product = null;
     if (productId) {
@@ -311,14 +311,15 @@ export async function updateItem({ actor, itemId, patch, reason, ip }) {
 
 // ---------------------------------------------------------------- visão do administrador
 
-export async function listUsersOverview({ search = "", ...paging } = {}) {
+export async function listUsersOverview({ search = "", archived = false, ...paging } = {}) {
   const params = [];
-  let clause = "";
+  const filters = [archived ? "u.deleted_at IS NOT NULL" : "u.deleted_at IS NULL"];
   if (search.trim()) {
-    clause = "WHERE (u.name ILIKE ? OR u.email ILIKE ? OR u.phone ILIKE ?)";
+    filters.push("(u.name ILIKE ? OR u.email ILIKE ? OR u.phone ILIKE ?)");
     const like = `%${escapeLike(search.trim())}%`;
     params.push(like, like, like);
   }
+  const clause = `WHERE ${filters.join(" AND ")}`;
   const { page, pageSize, offset } = pageParams(paging, { defaultSize: 25 });
   const rows = await query(
     `SELECT u.*, COALESCE(s.total, 0) AS total, COALESCE(s.paid, 0) AS paid, COALESCE(s.open_balance, 0) AS open_balance,
@@ -348,7 +349,7 @@ export async function getUserProfile(userId) {
   );
   return {
     id: user.id, name: user.name, email: user.email, phone: user.phone, cpf: user.cpf, birthDate: user.birth_date, role: user.role,
-    createdAt: user.created_at, emailVerified: Boolean(user.email_verified),
+    createdAt: user.created_at, emailVerified: Boolean(user.email_verified), archived: Boolean(user.deleted_at),
     totalBilled: money(summary.total), totalPaid: money(summary.paid), openBalance: money(summary.balance), accountsCount: Number(summary.accounts)
   };
 }

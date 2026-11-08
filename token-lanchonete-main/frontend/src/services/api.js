@@ -1,11 +1,16 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-export const API_ORIGIN = API_URL.replace(/\/api$/, "");
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "");
+const API_URL = configuredApiUrl || (import.meta.env.DEV ? "http://localhost:3000/api" : "");
+export const API_ORIGIN = API_URL.replace(/\/api$/i, "");
 
 export function getToken() {
   try { return localStorage.getItem("token-pedidos-token"); } catch { return null; }
 }
 
 async function request(path, options = {}) {
+  if (!API_URL) {
+    throw new Error("A API não foi configurada. Defina VITE_API_URL com o endereço público da API.");
+  }
+
   const token = getToken();
   const isFormData = options.body instanceof FormData;
   let response;
@@ -19,7 +24,7 @@ async function request(path, options = {}) {
       }
     });
   } catch {
-    throw new Error("Não foi possível conectar ao servidor. Verifique se o sistema está em execução.");
+    throw new Error("Não foi possível conectar à API. Verifique se o backend está publicado e se VITE_API_URL está correto.");
   }
 
   if (!response.ok) {
@@ -33,25 +38,24 @@ async function request(path, options = {}) {
 
 const qs = params => {
   const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params || {})) if (value !== undefined && value !== null && value !== "") search.set(key, value);
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value !== undefined && value !== null && value !== "") search.set(key, value);
+  }
   const text = search.toString();
   return text ? `?${text}` : "";
 };
 const json = (method, body) => ({ method, body: JSON.stringify(body ?? {}) });
 
 export const api = {
-  // sessão
   login: data => request("/auth/login", json("POST", data)),
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request("/auth/me"),
 
-  // cardápio
   listProducts: () => request("/products"),
   createProduct: data => request("/products", { method: "POST", body: productFormData(data) }),
   updateProduct: (id, data) => request(`/products/${id}`, { method: "PATCH", body: productFormData(data) }),
   deleteProduct: id => request(`/products/${id}`, { method: "DELETE" }),
 
-  // cliente
   getMyAccount: () => request("/accounts/me"),
   getMyHistory: params => request(`/accounts/me/history${qs(params)}`),
   getAccount: id => request(`/accounts/${id}`),
@@ -63,10 +67,12 @@ export const api = {
   cancelPayment: id => request(`/payments/${id}/cancel`, { method: "POST" }),
   paymentMethods: () => request("/payments/methods"),
 
-  // administração
   adminReport: params => request(`/admin/report${qs(params)}`),
   adminUsers: params => request(`/admin/users${qs(params)}`),
   adminUser: (id, params) => request(`/admin/users/${id}${qs(params)}`),
+  archiveUser: id => request(`/admin/users/${id}`, { method: "DELETE" }),
+  restoreUser: id => request(`/admin/users/${id}/restore`, { method: "POST" }),
+  resetUserPassword: (id, password) => request(`/admin/users/${id}/password`, json("PATCH", { password })),
   createUser: data => request("/admin/users", json("POST", data)),
   confirmUserEmail: id => request(`/admin/users/${id}/confirm-email`, { method: "POST" }),
   adminAccounts: params => request(`/admin/accounts${qs(params)}`),

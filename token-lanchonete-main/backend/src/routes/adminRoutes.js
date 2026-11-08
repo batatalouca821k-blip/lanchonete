@@ -3,7 +3,7 @@ import {
   accountDetailAdmin, accounts, addItem, audit, confirm, deleteItem, methods, patchItem, patchMethod, payments,
   postMethod, recordPayment, refund, report, userDetail
 } from "../controllers/adminController.js";
-import { confirmUserEmail, listAccesses, listUsers, registerUser } from "../controllers/authController.js";
+import { archiveUser, confirmUserEmail, listAccesses, listUsers, registerUser, resetUserPassword, restoreUser } from "../controllers/authController.js";
 import { requireAdmin, requireAuth } from "../services/authService.js";
 
 const router = Router();
@@ -15,6 +15,9 @@ router.get("/report", report);
 router.get("/users", listUsers);
 router.post("/users", registerUser);
 router.get("/users/:id", userDetail);
+router.delete("/users/:id", archiveUser);
+router.post("/users/:id/restore", restoreUser);
+router.patch("/users/:id/password", resetUserPassword);
 router.post("/users/:id/confirm-email", confirmUserEmail);
 router.post("/users/:id/items", addItem);
 

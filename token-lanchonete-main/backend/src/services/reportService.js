@@ -25,7 +25,7 @@ export async function financialReport({ from, to } = {}) {
   const sumCents = key => toCents(Object.values(byStatus).reduce((sum, entry) => sum + toCents(entry[key]), 0) / 100);
 
   const pending = await queryOne("SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS total FROM payments WHERE status = 'pending' AND (expires_at IS NULL OR expires_at > ?)", [new Date()]);
-  const customers = await queryOne("SELECT COUNT(*) AS count FROM users WHERE role = 'user'");
+  const customers = await queryOne("SELECT COUNT(*) AS count FROM users WHERE role = 'user' AND deleted_at IS NULL");
 
   const payments = await query(
     `SELECT p.amount, p.confirmed_at, p.method_code, m.name AS method_name FROM payments p JOIN payment_methods m ON m.code = p.method_code

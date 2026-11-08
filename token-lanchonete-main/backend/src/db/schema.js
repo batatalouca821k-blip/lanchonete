@@ -27,11 +27,13 @@ export const users = appTable("users", {
   passwordHash: varchar("password_hash", { length: 256 }).notNull(),
   salt: varchar("salt", { length: 64 }).notNull(),
   emailVerified: boolean("email_verified").notNull().default(true),
-  createdAt: createdAt("created_at")
+  createdAt: createdAt("created_at"),
+  deletedAt: nullableTimestamp("deleted_at")
 }, table => [
   uniqueIndex("uq_users_email").on(table.email),
   index("idx_users_name").on(table.name),
-  index("idx_users_role").on(table.role)
+  index("idx_users_role").on(table.role),
+  index("idx_users_deleted").on(table.deletedAt)
 ]).enableRLS();
 
 export const sessions = appTable("sessions", {
