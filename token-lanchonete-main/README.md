@@ -4,7 +4,7 @@ React 19 + Vite (frontend) - Express 5 (backend) - **PostgreSQL + Drizzle ORM** 
 
 ## Recursos
 - Clientes consultam o cardápio, adicionam itens à própria conta, fazem pagamentos parciais e veem histórico.
-- Administradores gerenciam usuários, contas, pagamentos, produtos, formas de pagamento e auditoria.
+- Administradores cadastram usuários como clientes ou administradores e gerenciam contas, pagamentos, produtos, formas de pagamento e auditoria.
 - Contas e pagamentos mantêm histórico; operações financeiras usam transações e chave de idempotência.
 
 ## Requisitos
