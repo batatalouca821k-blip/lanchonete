@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: lanchonete-boca-cheia-api
+    runtime: node
+    rootDir: token-lanchonete-main
+    buildCommand: npm ci
+    startCommand: npm run start --workspace backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_ORIGIN
+        value: https://totem-lanchonete.web.app
+      - key: APP_URL
+        value: https://lanchonete-boca-cheia-api.onrender.com
+      - key: DB_SSL
+        value: "true"
+      - key: ADMIN_EMAIL
+        value: admin@tokenpedidos.com
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
