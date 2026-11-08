@@ -8,6 +8,25 @@ export const dateTime = value => (value ? `${date(value)} ${time(value)}` : "—
 export const monthYear = value => new Date(value).toLocaleDateString("pt-BR", { timeZone: TZ, month: "long", year: "numeric" });
 export const shortDay = key => { const [, month, day] = key.split("-"); return `${day}/${month}`; };
 
+export function formatBrazilianDateInput(value) {
+  const digits = String(value).replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+export function parseBrazilianDateInput(value) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(value));
+  if (!match) return null;
+  const [, dayText, monthText, yearText] = match;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return null;
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
 /** Situação da conta */
 export const ACCOUNT_STATUS = {
   open: { label: "Em aberto", tone: "warn" },

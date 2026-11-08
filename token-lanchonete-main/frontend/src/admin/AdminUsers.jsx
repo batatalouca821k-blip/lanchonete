@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, MailCheck, PackagePlus, UserPlus, Users } from "lucide-react";
 import { api } from "../services/api.js";
 import { useAsync, useDebounced } from "../lib/hooks.js";
-import { date, dateTime, money } from "../lib/format.js";
+import { date, dateTime, formatBrazilianDateInput, money, parseBrazilianDateInput } from "../lib/format.js";
 import { AccountDetailModal } from "../components/AccountDetail.jsx";
 import { ItemFormModal } from "../components/AccountForms.jsx";
 import { AccountFilters, AccountsTable } from "../components/AccountsList.jsx";
@@ -75,9 +75,14 @@ function CreateUserModal({ onClose, onCreated }) {
   async function submit(event) {
     event.preventDefault();
     setError("");
+    const birthDate = parseBrazilianDateInput(form.birthDate);
+    if (!birthDate) {
+      setError("Informe uma data válida no formato DD/MM/AAAA.");
+      return;
+    }
     setSaving(true);
     try {
-      const result = await api.createUser(form);
+      const result = await api.createUser({ ...form, birthDate });
       toast.success(result.emailSent
         ? "Usuário cadastrado. O e-mail de confirmação foi enviado."
         : "Cadastro salvo, mas o e-mail de confirmação não foi enviado. O usuário está na lista como pendente; confirme manualmente ou revise o SMTP.");
@@ -97,7 +102,7 @@ function CreateUserModal({ onClose, onCreated }) {
         </div>
         <div className="form-row">
           <Field label="CPF" htmlFor="u-cpf"><input id="u-cpf" name="cpf" value={form.cpf} onChange={set} inputMode="numeric" placeholder="000.000.000-00" required /></Field>
-          <Field label="Data de nascimento" htmlFor="u-birth"><input id="u-birth" name="birthDate" type="date" value={form.birthDate} onChange={set} required /></Field>
+          <Field label="Data de nascimento" htmlFor="u-birth"><input id="u-birth" name="birthDate" type="text" inputMode="numeric" autoComplete="bday" placeholder="DD/MM/AAAA" maxLength={10} value={form.birthDate} onChange={event => setForm(current => ({ ...current, birthDate: formatBrazilianDateInput(event.target.value) }))} required /></Field>
         </div>
         <div className="form-row">
           <Field label="Telefone" htmlFor="u-phone"><input id="u-phone" name="phone" type="tel" value={form.phone} onChange={set} placeholder="(00) 00000-0000" required /></Field>
