@@ -31,7 +31,7 @@ Para PostgreSQL local, use `DB_HOST=127.0.0.1`, `DB_PORT=5432`, `DB_USER=lanchon
 
 ## Configurar Supabase
 
-No painel do projeto, abra **Connect** e copie a URI do pooler recomendada para o backend. Em redes IPv4, use o **Session pooler** (porta 5432); a conexão direta do Supabase exige IPv6. Configure a URI como `DATABASE_URL` no `backend/.env` e use `DB_SSL=true`. Para validar o certificado TLS, baixe o certificado CA em **Database → Settings → SSL Configuration**, salve-o em `backend/certs/prod-ca-2021.crt` e configure `DB_SSL_CA_FILE=certs/prod-ca-2021.crt`. Mantenha a URI somente no backend; nunca a coloque em variáveis `VITE_*`. Se usar variáveis separadas, informe o host, a porta, o usuário, a senha e o nome do banco exatamente como mostrados pelo Supabase.
+No painel do projeto, abra **Connect** e copie a URI do pooler recomendada para o backend. Em redes IPv4, use o **Session pooler** (porta 5432); a conexão direta do Supabase exige IPv6. Configure a URI como `DATABASE_URL` no `backend/.env` e use `DB_SSL=true`. Para validar o certificado TLS, baixe o certificado CA em **Database → Settings → SSL Configuration** e salve-o em `backend/certs/prod-ca-2021.crt`. No Render, configure `DB_SSL_CA_FILE=certs/prod-ca-2021.crt`; inclua o certificado público no repositório para que o serviço tenha o arquivo no deploy. Mantenha a URI somente no backend; nunca a coloque em variáveis `VITE_*`. Se usar variáveis separadas, informe o host, a porta, o usuário, a senha e o nome do banco exatamente como mostrados pelo Supabase.
 
 As tabelas da aplicação são criadas no schema `lanchonete_app`, com RLS habilitado e sem políticas públicas: o acesso é feito pela API Express no backend, não diretamente pelo navegador/Data API. O schema `public` permanece intacto para tabelas legadas que já existiam no projeto.
 
@@ -41,6 +41,26 @@ Antes de executar `npm run db:setup --workspace backend`, confira se o destino �
 - `start-windows.bat` instala dependências, prepara o banco e inicia a aplicação.
 - Na primeira inicialização, o administrador é criado com `ADMIN_EMAIL`/`ADMIN_PASSWORD`. Se a senha estiver vazia, uma senha aleatória aparece uma vez no terminal.
 - A conexão do banco fica somente no backend.
+
+## Publicar o site no Firebase e a API no Render
+
+O Firebase Hosting publica apenas os arquivos estáticos do frontend; ele não inicia o servidor Express. A API precisa estar publicada separadamente. Este repositório inclui um Blueprint em `../render.yaml` para hospedar a API no Render e usar o PostgreSQL do Supabase.
+
+1. Envie o repositório para o GitHub e, no Render, crie um Blueprint apontando para ele e selecione `render.yaml`.
+2. No Render, informe `DATABASE_URL` com a URI do **Session pooler** do Supabase (porta 5432) e defina uma senha forte em `ADMIN_PASSWORD`. Não coloque essas credenciais em arquivos `VITE_*`.
+3. No Supabase, baixe o certificado CA em **Database → Settings → SSL Configuration**. Salve a cópia como `token-lanchonete-main/backend/certs/prod-ca-2021.crt`, envie esse arquivo público ao GitHub e aguarde o novo deploy do Render. O Blueprint define `DB_SSL_CA_FILE=certs/prod-ca-2021.crt`.
+4. Aguarde o deploy e confirme que `https://lanchonete-boca-cheia-api.onrender.com/api/health` responde com `{"ok":true,...}`. O primeiro início aplica as migrações e prepara os dados iniciais.
+5. Copie `frontend/.env.production.example` para `frontend/.env.production` e confirme que `VITE_API_URL` aponta para a URL real da API, terminando em `/api`.
+6. Na raiz do repositório, gere os arquivos que o Firebase publica e faça o deploy:
+
+   ```powershell
+   npm --prefix token-lanchonete-main run build --workspace frontend
+   firebase deploy --only hosting
+   ```
+
+O build do Vite grava os arquivos em `public/`, pasta configurada no Firebase Hosting. Se o nome/endereço do serviço Render for diferente, atualize `VITE_API_URL` em `frontend/.env.production` antes de gerar o build. A alteração dessa variável exige novo build e novo deploy do Hosting.
+
+Se o banco já tiver usuários, alterar `ADMIN_PASSWORD` no Render não troca a senha de uma conta existente. Altere a senha administrativa após recuperar o acesso; não reutilize uma senha que tenha sido compartilhada.
 
 ## Evoluir o schema
 Edite os modelos em `backend/src/db/schema.js` e gere/revise a migração antes de aplicá-la:

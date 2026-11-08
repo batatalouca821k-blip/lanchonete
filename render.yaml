@@ -16,6 +16,8 @@ services:
         value: https://lanchonete-boca-cheia-api.onrender.com
       - key: DB_SSL
         value: "true"
+      - key: DB_SSL_CA_FILE
+        value: certs/prod-ca-2021.crt
       - key: ADMIN_EMAIL
         value: admin@tokenpedidos.com
       - key: DATABASE_URL
