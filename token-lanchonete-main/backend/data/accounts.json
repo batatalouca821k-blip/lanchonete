@@ -1,0 +1,38 @@
+[
+  {
+    "id": "aecbfa90-f4d0-44a0-8edc-e028636a632b",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Milk-shake",
+    "price": 12.9,
+    "quantity": 1,
+    "month": "2026-09",
+    "addedAt": "2026-09-07T17:29:25.010Z"
+  },
+  {
+    "id": "af93ce77-d6d0-4d2b-9c4d-2a3336c1a094",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Refrigerante",
+    "price": 7.9,
+    "quantity": 1,
+    "month": "2026-09",
+    "addedAt": "2026-09-07T17:29:23.940Z"
+  },
+  {
+    "id": "d4e2570f-1087-4277-84a1-c15d267aa15a",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Batata Média",
+    "price": 9.9,
+    "quantity": 1,
+    "month": "2026-09",
+    "addedAt": "2026-09-07T17:29:22.851Z"
+  },
+  {
+    "id": "dc53d9b4-8417-469c-8dd1-50b98644c3a6",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Combo Burger",
+    "price": 29.9,
+    "quantity": 1,
+    "month": "2026-09",
+    "addedAt": "2026-09-07T17:29:16.363Z"
+  }
+]

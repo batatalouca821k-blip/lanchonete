@@ -1,0 +1,110 @@
+[
+  {
+    "id": "e33fda6c-eed9-4085-aa28-efc3768d410c",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:47:10.885Z",
+    "ip": "::1"
+  },
+  {
+    "id": "97c436d5-e8d6-4a84-9f1b-5a0b981f1ae6",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Cliente Token",
+    "email": "cliente@tokenpedidos.com",
+    "role": "user",
+    "accessedAt": "2026-09-07T17:43:52.821Z",
+    "ip": "::1"
+  },
+  {
+    "id": "bb272cc8-5572-48e8-8725-1f6e6c61aae1",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:39:00.311Z",
+    "ip": "::1"
+  },
+  {
+    "id": "b4e42e7f-e132-4c1a-8bd2-2d4cfe5ac28d",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:38:25.961Z",
+    "ip": "::1"
+  },
+  {
+    "id": "1f229eca-4451-4939-93c5-72369bc7954a",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:35:37.997Z",
+    "ip": "::1"
+  },
+  {
+    "id": "7903cf93-7312-4140-984d-ef0a3bd827ce",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Cliente Token",
+    "email": "cliente@tokenpedidos.com",
+    "role": "user",
+    "accessedAt": "2026-09-07T17:32:04.678Z",
+    "ip": "::1"
+  },
+  {
+    "id": "ef64436b-4319-4609-b5f8-8639144421e0",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Cliente Token",
+    "email": "cliente@tokenpedidos.com",
+    "role": "user",
+    "accessedAt": "2026-09-07T17:29:11.276Z",
+    "ip": "::1"
+  },
+  {
+    "id": "8c459045-8924-4995-9d72-b744c2157c68",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:28:39.292Z",
+    "ip": "::1"
+  },
+  {
+    "id": "683548aa-b342-40da-bdd6-312e7d9ea8ab",
+    "userId": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Cliente Token",
+    "email": "cliente@tokenpedidos.com",
+    "role": "user",
+    "accessedAt": "2026-09-07T17:27:41.280Z",
+    "ip": "::1"
+  },
+  {
+    "id": "70870e68-ab96-4dd4-b33c-0ecc40fd11c5",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:24:00.148Z",
+    "ip": "::1"
+  },
+  {
+    "id": "0e8535bf-b33c-4ff3-bc54-0098948cbdcc",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:22:52.803Z",
+    "ip": "::1"
+  },
+  {
+    "id": "76653038-a6f0-4139-8447-1023aeb3b3af",
+    "userId": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "accessedAt": "2026-09-07T17:20:05.085Z",
+    "ip": "::1"
+  }
+]

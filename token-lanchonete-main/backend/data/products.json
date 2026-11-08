@@ -1,0 +1,30 @@
+[
+  {
+    "id": "fcb545e3-6f12-48ff-a4bc-1c96f13d19e0",
+    "name": "Combo Burger",
+    "description": "Hambúrguer, batata e bebida",
+    "price": 29.9,
+    "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=85"
+  },
+  {
+    "id": "269e99f3-9231-494a-8968-2f3123f97dba",
+    "name": "Batata Média",
+    "description": "Batatas crocantes e douradas",
+    "price": 9.9,
+    "image": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=85"
+  },
+  {
+    "id": "77092324-c524-48f4-ad58-418da6354baa",
+    "name": "Refrigerante",
+    "description": "Bebida gelada 350 ml",
+    "price": 7.9,
+    "image": "https://images.unsplash.com/photo-1629203849820-fdd70d49c38e?auto=format&fit=crop&w=600&q=85"
+  },
+  {
+    "id": "fdc079fb-cb2c-49a7-97b3-d54b8cefe692",
+    "name": "Milk-shake",
+    "description": "Chocolate cremoso",
+    "price": 12.9,
+    "image": "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=85"
+  }
+]

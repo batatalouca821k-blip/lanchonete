@@ -1,0 +1,81 @@
+{
+  "executedAt": "2026-11-08T02:29:10.014Z",
+  "forced": false,
+  "stats": {
+    "users": {
+      "source": 2,
+      "inserted": 2,
+      "existing": 0
+    },
+    "products": {
+      "source": 5,
+      "inserted": 5,
+      "existing": 0
+    },
+    "access_logs": {
+      "source": 24,
+      "inserted": 24,
+      "existing": 0
+    },
+    "accounts": {
+      "source": 1,
+      "inserted": 1,
+      "existing": 0
+    },
+    "account_items": {
+      "source": 5,
+      "inserted": 5,
+      "existing": 0
+    },
+    "orders": {
+      "source": 2,
+      "inserted": 2,
+      "existing": 0
+    },
+    "audit_log": {
+      "source": 18,
+      "inserted": 18,
+      "existing": 0
+    }
+  },
+  "checks": [
+    {
+      "name": "usuários: 2 na origem, 2 no PostgreSQL",
+      "ok": true
+    },
+    {
+      "name": "produtos: 5 na origem, 5 no PostgreSQL",
+      "ok": true
+    },
+    {
+      "name": "lançamentos de conta: 5 na origem, 5 no PostgreSQL",
+      "ok": true
+    },
+    {
+      "name": "acessos: 24 na origem, 24 no PostgreSQL",
+      "ok": true
+    },
+    {
+      "name": "pedidos: 2 na origem, 2 no PostgreSQL",
+      "ok": true
+    },
+    {
+      "name": "eventos de auditoria: 18 na origem, 18 no PostgreSQL",
+      "ok": true
+    },
+    {
+      "name": "senhas (hash+salt) e e-mails idênticos aos originais",
+      "ok": true
+    },
+    {
+      "name": "valor total das contas confere (R$ 65.60)",
+      "ok": true,
+      "detail": "PostgreSQL: R$ 65.60"
+    },
+    {
+      "name": "totais das contas = soma dos itens",
+      "ok": true
+    }
+  ],
+  "warnings": []
+}

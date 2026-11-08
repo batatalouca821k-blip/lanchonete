@@ -1,0 +1,26 @@
+[
+  {
+    "id": "d5556baf-af03-45d7-a0f3-d270007f22dc",
+    "name": "Administrador Token",
+    "cpf": "00000000000",
+    "birthDate": "1990-01-01",
+    "phone": "(11) 99999-0000",
+    "email": "admin@tokenpedidos.com",
+    "role": "admin",
+    "createdAt": "2026-09-07T17:20:04.841Z",
+    "salt": "f25491b42448b7389588130da1dc860a",
+    "passwordHash": "83c456ea7f4ba91314f456ef9751a4fae62a27269c65b8426bd68c8ede0eafed8f99c4373bd13e0705d145542e61d82f5cff3752bc80397af552403e47f203d2"
+  },
+  {
+    "id": "f4f9291d-b091-4e8c-90b4-fea4a26af44d",
+    "name": "Cliente Token",
+    "cpf": "11111111111",
+    "birthDate": "1995-01-01",
+    "phone": "(11) 98888-0000",
+    "email": "cliente@tokenpedidos.com",
+    "role": "user",
+    "createdAt": "2026-09-07T17:20:04.953Z",
+    "salt": "3d0f0db85473b06fac7ea43ce3a498dc",
+    "passwordHash": "3bb1e083b4ac2499bf2c89353d6d28a6600db16d989be3b1d89c88579c70aafc0a0fe4ef7610dbf14f0479b8bd2d0950faa335cc12397c6dc9d8982a369cd38a"
+  }
+]

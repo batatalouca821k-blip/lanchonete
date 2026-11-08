@@ -1,0 +1,47 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Backend: npm run dev",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"token-lanchonete-main\\backend",
+				"run",
+				"dev"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Set selected restaurant login image",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Copy-Item -LiteralPath 'C:\\Users\\muril\\Downloads\\Gemini_Generated_Image_nwazhinwazhinwaz.jpg' -Destination 'C:\\Users\\muril\\Downloads\\lanchonete-da-tuca\\token-lanchonete-main\\frontend\\public\\login-background.jpg' -Force"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify updated login background",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"--fail",
+				"--silent",
+				"--show-error",
+				"--output",
+				"NUL",
+				"--write-out",
+				"HTTP %{http_code} | %{content_type}",
+				"http://127.0.0.1:5173/login-background.jpg"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
