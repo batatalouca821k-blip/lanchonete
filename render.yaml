@@ -2,6 +2,7 @@ services:
   - type: web
     name: lanchonete-boca-cheia-api
     runtime: node
+    plan: free
     rootDir: token-lanchonete-main
     buildCommand: npm ci
     startCommand: npm run start --workspace backend
