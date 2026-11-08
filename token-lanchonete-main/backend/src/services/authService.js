@@ -90,6 +90,8 @@ export async function createUser(data, { actor, ip } = {}) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Informe um e-mail válido.");
   const password = String(data.password || "");
   if (password.length < 8) throw new HttpError(400, "A senha deve ter pelo menos 8 caracteres.");
+  const role = data.role ?? "user";
+  if (!["user", "admin"].includes(role)) throw new HttpError(400, "Selecione um perfil válido.");
   const cpf = requireText(data.cpf, "o CPF", { max: 20 });
   const birthDate = requireText(data.birthDate, "a data de nascimento", { max: 10 });
   const phone = requireText(data.phone, "o telefone", { max: 30 });
@@ -103,12 +105,12 @@ export async function createUser(data, { actor, ip } = {}) {
     await transaction(async conn => {
       await query(
         `INSERT INTO users (id, name, cpf, birth_date, phone, email, role, password_hash, salt, email_verified, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'user', ?, ?, FALSE, ?)`,
-        [id, name, cpf, birthDate, phone, email, record.passwordHash, record.salt, now], conn
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)`,
+        [id, name, cpf, birthDate, phone, email, role, record.passwordHash, record.salt, now], conn
       );
       await query("INSERT INTO email_verifications (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
         [randomUUID(), id, sha256(verificationToken), new Date(now.getTime() + 24 * 3600 * 1000)], conn);
-      await audit(conn, { actor, ip, action: "create", entity: "user", entityId: id, details: { email, name } });
+      await audit(conn, { actor, ip, action: "create", entity: "user", entityId: id, details: { email, name, role } });
     });
   } catch (error) {
     if (isDuplicateError(error)) throw new HttpError(409, "Este e-mail já está cadastrado.");

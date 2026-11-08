@@ -23,6 +23,7 @@ describe("cadastro e login", () => {
     const created = await server.api("POST", "/api/admin/users", { token: adminToken, body: { name: "Maria Silva", cpf: "123.456.789-09", birthDate: "1992-02-02", phone: "(11) 98888-7777", email: "Maria@Teste.com", password: "segredo123" } });
     assert.equal(created.status, 201);
     assert.equal(created.data.user.email, "maria@teste.com");
+    assert.equal(created.data.user.role, "user");
     assert.equal(created.data.user.emailVerified, false);
     assert.equal(JSON.stringify(created.data).includes("password"), false, "resposta não pode expor senha/hash");
 
@@ -46,6 +47,24 @@ describe("cadastro e login", () => {
     assert.equal((await server.api("POST", "/api/admin/users", { token: adminToken, body: base })).status, 201);
     assert.equal((await server.api("POST", "/api/admin/users", { token: adminToken, body: base })).status, 409);
     assert.equal((await server.api("POST", "/api/admin/users", { token: adminToken, body: { ...base, email: "outro@teste.com", password: "123" } })).status, 400);
+  });
+
+  test("administrador pode escolher o perfil e perfis inválidos são recusados", async () => {
+    const body = { name: "Nova administradora", cpf: "2", birthDate: "1990-01-01", phone: "2", email: "nova-admin@teste.com", password: "segredo123", role: "admin" };
+    const created = await server.api("POST", "/api/admin/users", { token: adminToken, body });
+    assert.equal(created.status, 201);
+    assert.equal(created.data.user.role, "admin");
+
+    await server.api("POST", `/api/admin/users/${created.data.user.id}/confirm-email`, { token: adminToken });
+    const login = await server.api("POST", "/api/auth/login", { body: { email: body.email, password: body.password } });
+    assert.equal(login.status, 200);
+    assert.equal(login.data.user.role, "admin");
+
+    const invalid = await server.api("POST", "/api/admin/users", {
+      token: adminToken,
+      body: { ...body, email: "perfil-invalido@teste.com", role: "superadmin" }
+    });
+    assert.equal(invalid.status, 400);
   });
 
   test("login inválido, sem token e logout", async () => {
@@ -74,6 +93,11 @@ describe("permissões", () => {
     for (const [method, path] of [["GET", "/api/admin/users"], ["GET", "/api/admin/report"], ["GET", "/api/admin/accounts"], ["GET", "/api/admin/payments"], ["GET", "/api/admin/audit"], ["POST", "/api/admin/payment-methods"]]) {
       assert.equal((await server.api(method, path, { token, body: method === "POST" ? { name: "x" } : undefined })).status, 403, `${method} ${path}`);
     }
+    const attemptedPromotion = await server.api("POST", "/api/admin/users", {
+      token,
+      body: { name: "Tentativa", cpf: "3", birthDate: "1990-01-01", phone: "3", email: "tentativa@teste.com", password: "segredo123", role: "admin" }
+    });
+    assert.equal(attemptedPromotion.status, 403);
     const product = await server.api("POST", "/api/products", { token, body: { name: "x" } });
     assert.equal(product.status, 403);
   });

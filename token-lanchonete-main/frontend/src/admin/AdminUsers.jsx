@@ -8,7 +8,7 @@ import { ItemFormModal } from "../components/AccountForms.jsx";
 import { AccountFilters, AccountsTable } from "../components/AccountsList.jsx";
 import { Badge, Button, EmptyState, ErrorState, Field, Modal, PageHeader, Pagination, Panel, Spinner, StatCard, useFeedback } from "../components/ui.jsx";
 
-const emptyForm = { name: "", cpf: "", birthDate: "", phone: "", email: "", password: "" };
+const emptyForm = { name: "", cpf: "", birthDate: "", phone: "", email: "", password: "", role: "user" };
 
 export function AdminUsers({ navigate }) {
   const { toast } = useFeedback();
@@ -103,6 +103,12 @@ function CreateUserModal({ onClose, onCreated }) {
           <Field label="Telefone" htmlFor="u-phone"><input id="u-phone" name="phone" type="tel" value={form.phone} onChange={set} placeholder="(00) 00000-0000" required /></Field>
           <Field label="E-mail" htmlFor="u-email"><input id="u-email" name="email" type="email" value={form.email} onChange={set} autoComplete="off" required /></Field>
         </div>
+        <Field label="Perfil do usuário" htmlFor="u-role" hint="Administradores têm acesso ao painel e às funções de gestão.">
+          <select id="u-role" name="role" value={form.role} onChange={set}>
+            <option value="user">Cliente</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </Field>
         <Field label="Senha inicial" htmlFor="u-pass" hint="Mínimo de 8 caracteres. Repasse a senha diretamente ao cliente: ela não é enviada por e-mail."><input id="u-pass" name="password" type="password" minLength="8" value={form.password} onChange={set} autoComplete="new-password" required /></Field>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" variant="primary" loading={saving}>Cadastrar</Button></div>
