@@ -194,6 +194,63 @@ export async function restoreUser(userId, { actor, ip }) {
   });
 }
 
+export async function permanentlyDeleteUser(userId, { actor, ip }) {
+  if (userId === actor.id) throw new HttpError(409, "Você não pode excluir permanentemente sua própria conta.");
+
+  return transaction(async conn => {
+    const user = await queryOne("SELECT * FROM users WHERE id = ? AND deleted_at IS NOT NULL FOR UPDATE", [userId], conn);
+    if (!user) throw new HttpError(404, "Usuário arquivado não encontrado.");
+
+    if (user.role === "admin") {
+      const { count } = await queryOne("SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND deleted_at IS NULL", [], conn);
+      if (Number(count) === 0) {
+        throw new HttpError(409, "Não é possível excluir o último administrador. Ative outro administrador primeiro.");
+      }
+    }
+
+    await query("SELECT id FROM accounts WHERE user_id = ? ORDER BY id FOR UPDATE", [userId], conn);
+    const pending = await queryOne(
+      `SELECT COUNT(*) AS count FROM payments p
+       LEFT JOIN accounts a ON a.id = p.account_id
+       WHERE (p.user_id = ? OR a.user_id = ?) AND p.status = 'pending'`,
+      [userId, userId],
+      conn
+    );
+    if (Number(pending.count) > 0) {
+      throw new HttpError(409, "Cancele ou resolva os pagamentos pendentes antes de excluir permanentemente este usuário.");
+    }
+
+    await query(
+      "UPDATE payments SET account_id = NULL, user_id = NULL WHERE user_id = ? OR account_id IN (SELECT id FROM accounts WHERE user_id = ?)",
+      [userId, userId],
+      conn
+    );
+    await query(
+      `UPDATE audit_log
+       SET actor_id = NULL, actor_name = 'Usuário excluído', actor_role = NULL, details = NULL, ip = NULL
+       WHERE actor_id = ?`,
+      [userId],
+      conn
+    );
+    await query(
+      `DELETE FROM audit_log
+       WHERE (entity = 'user' AND entity_id = ?)
+          OR account_id IN (SELECT id FROM accounts WHERE user_id = ?)`,
+      [userId, userId],
+      conn
+    );
+    await query("DELETE FROM access_logs WHERE user_id = ?", [userId], conn);
+    await query("DELETE FROM account_items WHERE account_id IN (SELECT id FROM accounts WHERE user_id = ?)", [userId], conn);
+    await query("DELETE FROM accounts WHERE user_id = ?", [userId], conn);
+    await query("DELETE FROM sessions WHERE user_id = ?", [userId], conn);
+    await query("DELETE FROM email_verifications WHERE user_id = ?", [userId], conn);
+    await query("DELETE FROM users WHERE id = ?", [userId], conn);
+    await audit(conn, { actor, ip, action: "user-permanently-deleted", entity: "user" });
+
+    return { id: userId, permanentlyDeleted: true };
+  });
+}
+
 export async function resetPassword(userId, password, { actor, ip, sessionToken }) {
   const newPassword = String(password || "");
   if (newPassword.length < 8) throw new HttpError(400, "A senha deve ter pelo menos 8 caracteres.");

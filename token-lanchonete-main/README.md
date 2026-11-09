@@ -4,7 +4,7 @@ React 19 + Vite (frontend) - Express 5 (backend) - **PostgreSQL + Drizzle ORM** 
 
 ## Recursos
 - Clientes consultam o cardápio, adicionam itens à própria conta, fazem pagamentos parciais e veem histórico.
-- Administradores cadastram usuários como clientes ou administradores, arquivam e restauram usuários e gerenciam contas, pagamentos, produtos, formas de pagamento e auditoria. Arquivar encerra as sessões e bloqueia o acesso, preservando o histórico financeiro.
+- Administradores cadastram usuários como clientes ou administradores, arquivam e restauram usuários e gerenciam contas, pagamentos, produtos, formas de pagamento e auditoria. Arquivar encerra as sessões e bloqueia o acesso, preservando o histórico financeiro. Um usuário arquivado também pode ser excluído permanentemente: as contas e os itens são apagados, os pagamentos não pendentes permanecem sem vínculo pessoal e a operação é bloqueada enquanto houver pagamentos pendentes.
 - Contas e pagamentos mantêm histórico; operações financeiras usam transações e chave de idempotência.
 
 ## Requisitos

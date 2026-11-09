@@ -12,7 +12,7 @@ import { createStaticPixPayload } from "./pixService.js";
 const brl = cents => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 const PAYMENT_SELECT = `SELECT p.*, m.name AS method_name, u.name AS user_name, u.email AS user_email,
   cb.name AS created_by_name, cf.name AS confirmed_by_name, rf.name AS refunded_by_name
-  FROM payments p JOIN payment_methods m ON m.code = p.method_code JOIN users u ON u.id = p.user_id
+  FROM payments p JOIN payment_methods m ON m.code = p.method_code LEFT JOIN users u ON u.id = p.user_id
   LEFT JOIN users cb ON cb.id = p.created_by LEFT JOIN users cf ON cf.id = p.confirmed_by LEFT JOIN users rf ON rf.id = p.refunded_by`;
 
 // ---------------------------------------------------------------- formas de pagamento
@@ -203,6 +203,7 @@ export async function recordManualPayment({ actor, accountId, amountCents, metho
 export async function confirmPayment({ paymentId, actor = null, via = "admin", reference, ip }) {
   return transaction(async conn => {
     const probe = await loadPayment(paymentId, conn);
+    if (!probe.account_id) throw new HttpError(409, "Este pagamento foi mantido como histórico e não pode mais ser alterado.");
     const account = await lockAccount(conn, probe.account_id);
     const payment = await loadPayment(paymentId, conn);
 
@@ -237,6 +238,7 @@ export async function confirmPayment({ paymentId, actor = null, via = "admin", r
 export async function cancelPayment({ paymentId, actor, ip }) {
   return transaction(async conn => {
     const probe = await loadPayment(paymentId, conn);
+    if (!probe.account_id) throw new HttpError(409, "Este pagamento foi mantido como histórico e não pode mais ser alterado.");
     await lockAccount(conn, probe.account_id);
     const payment = await loadPayment(paymentId, conn);
     if (actor.role !== "admin" && payment.user_id !== actor.id) throw new HttpError(404, "Pagamento não encontrado.");
@@ -252,6 +254,7 @@ export async function refundPayment({ paymentId, actor, reason, ip }) {
   const cleanReason = requireText(reason, "o motivo do estorno", { min: 3 });
   return transaction(async conn => {
     const probe = await loadPayment(paymentId, conn);
+    if (!probe.account_id) throw new HttpError(409, "Este pagamento foi mantido como histórico e não pode mais ser alterado.");
     const account = await lockAccount(conn, probe.account_id);
     const payment = await loadPayment(paymentId, conn);
     if (payment.status !== "confirmed") throw new HttpError(409, "Só é possível estornar pagamentos confirmados.");
@@ -322,8 +325,8 @@ export async function listPayments({ userId = null, accountId = null, status = "
   const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const { page, pageSize, offset } = pageParams(paging);
   const rows = await query(`${PAYMENT_SELECT} ${clause} ORDER BY p.created_at DESC LIMIT ${pageSize} OFFSET ${offset}`, params);
-  const count = (await queryOne(`SELECT COUNT(*) AS count FROM payments p JOIN users u ON u.id = p.user_id ${clause}`, params)).count;
-  const sum = (await queryOne(`SELECT COALESCE(SUM(CASE WHEN p.status = 'confirmed' THEN p.amount END), 0) AS confirmed FROM payments p JOIN users u ON u.id = p.user_id ${clause}`, params)).confirmed;
+  const count = (await queryOne(`SELECT COUNT(*) AS count FROM payments p LEFT JOIN users u ON u.id = p.user_id ${clause}`, params)).count;
+  const sum = (await queryOne(`SELECT COALESCE(SUM(CASE WHEN p.status = 'confirmed' THEN p.amount END), 0) AS confirmed FROM payments p LEFT JOIN users u ON u.id = p.user_id ${clause}`, params)).confirmed;
   return { rows: rows.map(mapPayment), page, pageSize, count: Number(count), confirmedTotal: Number(sum) };
 }
 

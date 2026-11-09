@@ -140,8 +140,8 @@ export const accountItems = appTable("account_items", {
 
 export const payments = appTable("payments", {
   id: id("id").primaryKey(),
-  accountId: id("account_id").notNull().references(() => accounts.id, { onDelete: "restrict" }),
-  userId: id("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  accountId: id("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  userId: id("user_id").references(() => users.id, { onDelete: "set null" }),
   methodCode: varchar("method_code", { length: 30 }).notNull().references(() => paymentMethods.code, { onDelete: "restrict", onUpdate: "cascade" }),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   status: paymentStatus("status").notNull().default("pending"),

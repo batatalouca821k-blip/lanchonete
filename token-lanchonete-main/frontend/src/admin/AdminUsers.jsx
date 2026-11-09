@@ -51,6 +51,23 @@ export function AdminUsers({ navigate }) {
     }
   }
 
+  async function permanentlyDelete(user) {
+    const answer = await confirm({
+      title: "Excluir usuário permanentemente",
+      danger: true,
+      confirmLabel: "Excluir permanentemente",
+      message: `Excluir ${user.name}, suas contas e itens sem possibilidade de restauração? Pagamentos não pendentes serão preservados sem vínculo com usuário ou conta. A exclusão será bloqueada se houver pagamentos pendentes.`
+    });
+    if (!answer) return;
+    try {
+      await api.permanentlyDeleteUser(user.id);
+      toast.success(`${user.name} foi excluído permanentemente. Os pagamentos foram mantidos sem vínculo pessoal.`);
+      reload();
+    } catch (deleteError) {
+      toast.error(deleteError.message);
+    }
+  }
+
   return (
     <section>
       <PageHeader eyebrow="ADMINISTRAÇÃO" title={showArchived ? "Usuários arquivados" : "Usuários"} subtitle={showArchived ? "Contas arquivadas não podem entrar no sistema. O histórico financeiro permanece preservado." : "Cadastre clientes, consulte as contas de cada um e lance itens."}
@@ -79,7 +96,10 @@ export function AdminUsers({ navigate }) {
                     <td data-label="Última movimentação">{user.lastActivity ? dateTime(user.lastActivity) : "—"}</td>
                     <td className="actions">
                       {showArchived
-                        ? <Button size="sm" icon={ArchiveRestore} onClick={() => restore(user)}>Restaurar</Button>
+                        ? <>
+                            <Button size="sm" icon={ArchiveRestore} onClick={() => restore(user)}>Restaurar</Button>
+                            <Button size="sm" variant="ghost-danger" icon={Trash2} onClick={() => permanentlyDelete(user)}>Excluir permanentemente</Button>
+                          </>
                         : <>
                             <Button size="sm" onClick={() => navigate(`admin/usuarios/${user.id}`)}>Ver contas</Button>
                             <Button size="sm" icon={PackagePlus} onClick={() => setAddingFor(user)}>Lançar item</Button>
@@ -197,13 +217,33 @@ export function AdminUserDetail({ userId, navigate }) {
     }
   }
 
+  async function permanentlyDeleteProfile() {
+    const answer = await confirm({
+      title: "Excluir usuário permanentemente",
+      danger: true,
+      confirmLabel: "Excluir permanentemente",
+      message: `Excluir ${profile.name}, suas contas e itens sem possibilidade de restauração? Pagamentos não pendentes serão preservados sem vínculo com usuário ou conta. A exclusão será bloqueada se houver pagamentos pendentes.`
+    });
+    if (!answer) return;
+    try {
+      await api.permanentlyDeleteUser(profile.id);
+      toast.success(`${profile.name} foi excluído permanentemente. Os pagamentos foram mantidos sem vínculo pessoal.`);
+      navigate("admin/usuarios");
+    } catch (deleteError) {
+      toast.error(deleteError.message);
+    }
+  }
+
   return (
     <section>
       <PageHeader eyebrow="USUÁRIO" title={profile.name} subtitle={`${profile.email} · ${profile.phone} · ${profile.archived ? "arquivado" : `cliente desde ${date(profile.createdAt)}`}`}
         actions={<>
           <Button icon={ArrowLeft} onClick={() => navigate("admin/usuarios")}>Voltar</Button>
           {profile.archived
-            ? <Button icon={ArchiveRestore} onClick={restoreProfile}>Restaurar usuário</Button>
+            ? <>
+                <Button icon={ArchiveRestore} onClick={restoreProfile}>Restaurar usuário</Button>
+                <Button variant="ghost-danger" icon={Trash2} onClick={permanentlyDeleteProfile}>Excluir permanentemente</Button>
+              </>
             : <>
                 <Button icon={KeyRound} onClick={() => setResettingPassword(true)}>Redefinir senha</Button>
                 <Button variant="ghost-danger" icon={Trash2} onClick={archiveProfile}>Excluir usuário</Button>

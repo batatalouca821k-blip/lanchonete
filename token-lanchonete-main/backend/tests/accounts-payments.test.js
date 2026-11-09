@@ -115,6 +115,63 @@ describe("cadastro e login", () => {
     assert.equal(shortPassword.status, 400);
   });
 
+  test("exclusão permanente remove usuário e contas, preservando pagamentos sem identificação", async () => {
+    const user = await createUserDirect({ name: "Cliente a excluir", email: "excluir@teste.com" });
+    const product = await createProductDirect({ name: "Item da conta excluída", price: 20 });
+    const added = await server.api("POST", `/api/admin/users/${user.id}/items`, {
+      token: adminToken,
+      body: { productId: product.id, quantity: 1 }
+    });
+    assert.equal(added.status, 201);
+    const account = await query("SELECT id FROM accounts WHERE user_id = ?", [user.id]);
+    const payment = await server.api("POST", `/api/admin/accounts/${account[0].id}/payments`, {
+      token: adminToken,
+      body: { amount: 10, method: "dinheiro", idempotencyKey: key() }
+    });
+    assert.equal(payment.status, 201);
+
+    assert.equal((await server.api("DELETE", `/api/admin/users/${user.id}`, { token: adminToken })).status, 200);
+    const deleted = await server.api("DELETE", `/api/admin/users/${user.id}/permanent`, { token: adminToken });
+    assert.equal(deleted.status, 200);
+    assert.equal(deleted.data.permanentlyDeleted, true);
+
+    assert.equal((await query("SELECT id FROM users WHERE id = ?", [user.id])).length, 0);
+    assert.equal((await query("SELECT id FROM accounts WHERE id = ?", [account[0].id])).length, 0);
+    assert.equal((await query("SELECT id FROM account_items WHERE account_id = ?", [account[0].id])).length, 0);
+    const retainedPayment = await query("SELECT * FROM payments WHERE id = ?", [payment.data.id]);
+    assert.equal(retainedPayment.length, 1);
+    assert.equal(retainedPayment[0].account_id, null);
+    assert.equal(retainedPayment[0].user_id, null);
+    assert.equal(retainedPayment[0].amount, 10);
+    assert.equal(retainedPayment[0].status, "confirmed");
+
+    const listed = await server.api("GET", "/api/admin/payments", { token: adminToken });
+    const orphanedPayment = listed.data.rows.find(row => row.id === payment.data.id);
+    assert.equal(orphanedPayment.userName, null);
+    assert.equal(orphanedPayment.accountId, null);
+  });
+
+  test("exclusão permanente é bloqueada enquanto houver pagamento pendente", async () => {
+    const { user, token } = await newCustomer("Cliente com Pix pendente");
+    const product = await createProductDirect({ name: "Conta com Pix pendente", price: 10 });
+    const added = await server.api("POST", "/api/accounts/me/items", { token, body: { productId: product.id, quantity: 1 } });
+    const pending = await server.api("POST", "/api/accounts/me/payments", {
+      token,
+      body: { accountId: added.data.id, amount: 5, method: "pix", idempotencyKey: key() }
+    });
+    assert.equal(pending.status, 201);
+    assert.equal((await server.api("DELETE", `/api/admin/users/${user.id}`, { token: adminToken })).status, 200);
+
+    const blocked = await server.api("DELETE", `/api/admin/users/${user.id}/permanent`, { token: adminToken });
+    assert.equal(blocked.status, 409);
+    assert.match(blocked.data.message, /pagamentos pendentes/i);
+    assert.equal((await query("SELECT id FROM users WHERE id = ?", [user.id])).length, 1);
+
+    const cancelled = await server.api("POST", `/api/payments/${pending.data.id}/cancel`, { token: adminToken });
+    assert.equal(cancelled.status, 200);
+    assert.equal((await server.api("DELETE", `/api/admin/users/${user.id}/permanent`, { token: adminToken })).status, 200);
+  });
+
   test("administrador não pode arquivar a própria conta nem repetir arquivamento", async () => {
     const self = await server.api("DELETE", `/api/admin/users/${admin.id}`, { token: adminToken });
     assert.equal(self.status, 409);

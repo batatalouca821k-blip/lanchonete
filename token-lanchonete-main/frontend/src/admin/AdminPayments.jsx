@@ -59,15 +59,15 @@ export function AdminPayments() {
                 {data.rows.map(payment => (
                   <tr key={payment.id}>
                     <td data-label="Data e hora">{date(payment.createdAt)} <small>{time(payment.createdAt)}</small></td>
-                    <td data-label="Cliente"><strong>{payment.userName}</strong><small>{payment.userEmail}</small></td>
+                    <td data-label="Cliente"><strong>{payment.userName || "Usuário excluído"}</strong><small>{payment.userEmail || "Histórico sem vínculo pessoal"}</small></td>
                     <td data-label="Forma">{payment.methodName}<small>{payment.provider ? "online" : payment.createdByRole === "admin" ? "registrado pela administração" : "iniciado pelo cliente"}</small></td>
                     <td data-label="Valor" className="num money">{money(payment.amount)}</td>
                     <td data-label="Situação"><PaymentBadge status={payment.status} />{payment.note && <small>{payment.note}</small>}{payment.refundReason && <small>{payment.refundReason}</small>}</td>
                     <td data-label="Referência" className="ref" title={payment.reference || ""}>{payment.reference || "—"}</td>
                     <td className="actions">
-                      <Button size="sm" onClick={() => setOpen(payment.accountId)}>Conta</Button>
-                      {payment.status === "pending" && <rowButtons.Confirm onClick={() => confirmPayment(payment)} />}
-                      {payment.status === "confirmed" && <rowButtons.Refund onClick={() => refund(payment)} />}
+                      {payment.accountId && <Button size="sm" onClick={() => setOpen(payment.accountId)}>Conta</Button>}
+                      {payment.accountId && payment.status === "pending" && <rowButtons.Confirm onClick={() => confirmPayment(payment)} />}
+                      {payment.accountId && payment.status === "confirmed" && <rowButtons.Refund onClick={() => refund(payment)} />}
                     </td>
                   </tr>
                 ))}

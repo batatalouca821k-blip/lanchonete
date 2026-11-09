@@ -1,4 +1,4 @@
-import { archiveUser as archiveUserAccount, authenticateLogin, bearerToken, confirmEmailManually, createUser, getAccesses, logout as endSession, resetPassword as resetUserPasswordAccount, restoreUser as restoreUserAccount, verifyEmail } from "../services/authService.js";
+import { archiveUser as archiveUserAccount, authenticateLogin, bearerToken, confirmEmailManually, createUser, getAccesses, logout as endSession, permanentlyDeleteUser as permanentlyDeleteUserAccount, resetPassword as resetUserPasswordAccount, restoreUser as restoreUserAccount, verifyEmail } from "../services/authService.js";
 import { listUsersOverview } from "../services/accountService.js";
 
 export async function login(req, res) {
@@ -28,6 +28,10 @@ export async function archiveUser(req, res) {
 
 export async function restoreUser(req, res) {
   res.json(await restoreUserAccount(req.params.id, { actor: req.user, ip: req.ip }));
+}
+
+export async function permanentlyDeleteUser(req, res) {
+  res.json(await permanentlyDeleteUserAccount(req.params.id, { actor: req.user, ip: req.ip }));
 }
 
 export async function resetUserPassword(req, res) {

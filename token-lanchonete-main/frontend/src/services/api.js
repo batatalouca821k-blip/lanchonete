@@ -71,6 +71,7 @@ export const api = {
   adminUsers: params => request(`/admin/users${qs(params)}`),
   adminUser: (id, params) => request(`/admin/users/${id}${qs(params)}`),
   archiveUser: id => request(`/admin/users/${id}`, { method: "DELETE" }),
+  permanentlyDeleteUser: id => request(`/admin/users/${id}/permanent`, { method: "DELETE" }),
   restoreUser: id => request(`/admin/users/${id}/restore`, { method: "POST" }),
   resetUserPassword: (id, password) => request(`/admin/users/${id}/password`, json("PATCH", { password })),
   createUser: data => request("/admin/users", json("POST", data)),
