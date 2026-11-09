@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Archive, ArchiveRestore, ArrowLeft, KeyRound, MailCheck, PackagePlus, Trash2, UserPlus, Users } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, KeyRound, MailCheck, PackagePlus, Send, Trash2, UserPlus, Users } from "lucide-react";
 import { api } from "../services/api.js";
 import { useAsync, useDebounced } from "../lib/hooks.js";
 import { date, dateTime, formatBrazilianDateInput, money, parseBrazilianDateInput } from "../lib/format.js";
@@ -19,9 +19,26 @@ export function AdminUsers({ navigate }) {
   const { data, loading, error, reload } = useAsync(() => api.adminUsers({ search: debounced, archived: showArchived, page, pageSize: 15 }), [debounced, page, showArchived]);
   const [creating, setCreating] = useState(false);
   const [addingFor, setAddingFor] = useState(null);
+  const [resendingFor, setResendingFor] = useState(null);
 
   async function confirmEmail(user) {
     try { await api.confirmUserEmail(user.id); toast.success(`E-mail de ${user.name} confirmado.`); reload(); } catch (confirmError) { toast.error(confirmError.message); }
+  }
+
+  async function resendEmail(user) {
+    setResendingFor(user.id);
+    try {
+      const result = await api.resendUserVerificationEmail(user.id);
+      if (result.emailAccepted) {
+        toast.success(`O provedor aceitou o reenvio para ${user.email}. Acompanhe a entrega no painel Resend.`);
+      } else {
+        toast.error("Não foi possível enviar o e-mail. Confira a configuração da Resend e os logs do Render.");
+      }
+    } catch (resendError) {
+      toast.error(resendError.message);
+    } finally {
+      setResendingFor(null);
+    }
   }
 
   async function archive(user) {
@@ -103,7 +120,10 @@ export function AdminUsers({ navigate }) {
                         : <>
                             <Button size="sm" onClick={() => navigate(`admin/usuarios/${user.id}`)}>Ver contas</Button>
                             <Button size="sm" icon={PackagePlus} onClick={() => setAddingFor(user)}>Lançar item</Button>
-                            {!user.emailVerified && <Button size="sm" icon={MailCheck} onClick={() => confirmEmail(user)}>Confirmar e-mail</Button>}
+                            {!user.emailVerified && <>
+                              <Button size="sm" icon={Send} loading={resendingFor === user.id} disabled={Boolean(resendingFor)} onClick={() => resendEmail(user)}>Reenviar e-mail</Button>
+                              <Button size="sm" icon={MailCheck} onClick={() => confirmEmail(user)}>Confirmar e-mail</Button>
+                            </>}
                             <Button size="sm" variant="ghost-danger" icon={Trash2} onClick={() => archive(user)}>Excluir</Button>
                           </>}
                     </td>

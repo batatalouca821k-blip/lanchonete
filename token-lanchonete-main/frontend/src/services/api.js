@@ -76,6 +76,7 @@ export const api = {
   resetUserPassword: (id, password) => request(`/admin/users/${id}/password`, json("PATCH", { password })),
   createUser: data => request("/admin/users", json("POST", data)),
   confirmUserEmail: id => request(`/admin/users/${id}/confirm-email`, { method: "POST" }),
+  resendUserVerificationEmail: id => request(`/admin/users/${id}/resend-verification-email`, { method: "POST" }),
   adminAccounts: params => request(`/admin/accounts${qs(params)}`),
   adminAccount: id => request(`/admin/accounts/${id}`),
   adminAddItem: (userId, data) => request(`/admin/users/${userId}/items`, json("POST", data)),

@@ -137,6 +137,42 @@ export async function verifyEmail(token) {
   return true;
 }
 
+export async function resendVerificationEmail(userId, { actor, ip }) {
+  const user = await queryOne(
+    "SELECT id, name, email, email_verified FROM users WHERE id = ? AND deleted_at IS NULL",
+    [userId]
+  );
+  if (!user) throw new HttpError(404, "Usuário não encontrado.");
+  if (user.email_verified) throw new HttpError(409, "O e-mail deste usuário já foi confirmado.");
+
+  const now = new Date();
+  const verificationId = randomUUID();
+  const verificationToken = randomBytes(32).toString("hex");
+  await query(
+    "INSERT INTO email_verifications (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
+    [verificationId, userId, sha256(verificationToken), new Date(now.getTime() + 24 * 3600 * 1000)]
+  );
+
+  const delivery = await sendVerificationEmail({ name: user.name, email: user.email, token: verificationToken });
+  await transaction(async conn => {
+    if (delivery.accepted) {
+      await query(
+        "UPDATE email_verifications SET used_at = ? WHERE user_id = ? AND id <> ? AND used_at IS NULL",
+        [new Date(), userId, verificationId],
+        conn
+      );
+    } else {
+      await query("UPDATE email_verifications SET used_at = ? WHERE id = ? AND used_at IS NULL", [new Date(), verificationId], conn);
+    }
+    await audit(conn, {
+      actor, ip, action: "resend-verification-email", entity: "user", entityId: userId,
+      details: { emailAccepted: delivery.accepted }
+    });
+  });
+
+  return { emailAccepted: delivery.accepted };
+}
+
 export async function confirmEmailManually(userId, { actor, ip }) {
   const user = await queryOne("SELECT * FROM users WHERE id = ? AND deleted_at IS NULL", [userId]);
   if (!user) throw new HttpError(404, "Usuário não encontrado.");

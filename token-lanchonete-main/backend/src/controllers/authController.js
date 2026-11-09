@@ -1,4 +1,4 @@
-import { archiveUser as archiveUserAccount, authenticateLogin, bearerToken, confirmEmailManually, createUser, getAccesses, logout as endSession, permanentlyDeleteUser as permanentlyDeleteUserAccount, resetPassword as resetUserPasswordAccount, restoreUser as restoreUserAccount, verifyEmail } from "../services/authService.js";
+import { archiveUser as archiveUserAccount, authenticateLogin, bearerToken, confirmEmailManually, createUser, getAccesses, logout as endSession, permanentlyDeleteUser as permanentlyDeleteUserAccount, resetPassword as resetUserPasswordAccount, resendVerificationEmail as resendUserVerificationEmailAccount, restoreUser as restoreUserAccount, verifyEmail } from "../services/authService.js";
 import { listUsersOverview } from "../services/accountService.js";
 
 export async function login(req, res) {
@@ -56,6 +56,10 @@ export async function registerUser(req, res) {
 
 export async function confirmUserEmail(req, res) {
   res.json(await confirmEmailManually(req.params.id, { actor: req.user, ip: req.ip }));
+}
+
+export async function resendUserVerificationEmail(req, res) {
+  res.json(await resendUserVerificationEmailAccount(req.params.id, { actor: req.user, ip: req.ip }));
 }
 
 export async function confirmEmail(req, res) {
