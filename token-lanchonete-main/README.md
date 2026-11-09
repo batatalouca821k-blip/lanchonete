@@ -47,7 +47,7 @@ Antes de executar `npm run db:setup --workspace backend`, confira se o destino �
 O Firebase Hosting publica apenas os arquivos estáticos do frontend; ele não inicia o servidor Express. A API precisa estar publicada separadamente. Este repositório inclui um Blueprint em `../render.yaml` para hospedar a API no Render e usar o PostgreSQL do Supabase.
 
 1. Envie o repositório para o GitHub e, no Render, crie um Blueprint apontando para ele e selecione `render.yaml`.
-2. No Render, informe `DATABASE_URL` com a URI do **Session pooler** do Supabase (porta 5432) e defina uma senha forte em `ADMIN_PASSWORD`. Não coloque essas credenciais em arquivos `VITE_*`.
+2. No Render, informe `DATABASE_URL` com a URI do **Session pooler** do Supabase (porta 5432), defina uma senha forte em `ADMIN_PASSWORD` e configure o SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM`. Para Gmail, use `smtp.gmail.com`, porta `587`, o endereço Gmail em `SMTP_USER` e `MAIL_FROM`, e uma senha de app Google em `SMTP_PASS` (requer verificação em duas etapas). Nunca use a senha normal da conta. Não coloque essas credenciais em arquivos `VITE_*` nem no repositório.
 3. No Supabase, baixe o certificado CA em **Database → Settings → SSL Configuration**. Salve a cópia como `token-lanchonete-main/backend/certs/prod-ca-2021.crt`, envie esse arquivo público ao GitHub e aguarde o novo deploy do Render. O Blueprint define `DB_SSL_CA_FILE=certs/prod-ca-2021.crt`.
 4. Aguarde o deploy e confirme que `https://lanchonete-boca-cheia-api.onrender.com/api/health` responde com `{"ok":true,...}`. O primeiro início aplica as migrações e prepara os dados iniciais.
 5. Copie `frontend/.env.production.example` para `frontend/.env.production` e confirme que `VITE_API_URL` aponta para a URL real da API, terminando em `/api`.
@@ -80,6 +80,7 @@ O processo lê SQLite/JSON, valida contagens e totais e não altera os arquivos 
 ## Pagamentos e e-mail
 - Pix pode ser confirmado manualmente ou via Mercado Pago (`MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_WEBHOOK_SECRET`).
 - Para enviar confirmações pelo Gmail, configure `SMTP_USER` e `MAIL_FROM` com seu endereço Gmail e `SMTP_PASS` com uma senha de app Google (requer verificação em duas etapas). O `.env` já usa `SMTP_HOST=smtp.gmail.com` e `SMTP_PORT=587`; nunca use a senha normal da conta nem compartilhe esses dados. Reinicie o servidor depois de salvar.
+- Em produção no Render, configure essas variáveis na página **Environment** do serviço e faça um novo deploy. O `render.yaml` declara as variáveis SMTP como valores secretos/não sincronizados; elas precisam ser preenchidas no painel. Se o cadastro mostrar que o e-mail não foi enviado, revise os logs do serviço e as credenciais SMTP.
 
 ## Testes
 Use `TEST_DATABASE_URL` com um banco PostgreSQL local e separado. A suíte limpa as tabelas desse banco; nunca use a URL de produção:
