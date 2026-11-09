@@ -1,11 +1,30 @@
-import nodemailer from "nodemailer";
-import { APP_URL, MAIL_FROM, SMTP_HOST, SMTP_PASS, SMTP_PORT, SMTP_USER } from "../config.js";
+import { APP_URL, MAIL_FROM, RESEND_API_KEY } from "../config.js";
 
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 
-function transporter() {
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  return nodemailer.createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: SMTP_PORT === 465, auth: { user: SMTP_USER, pass: SMTP_PASS } });
+export async function sendWithResend(message, apiKey, fetchImplementation = fetch) {
+  const response = await fetchImplementation("https://api.resend.com/emails", {
+    method: "POST",
+    signal: AbortSignal.timeout(15000),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: message.from,
+      to: [message.to],
+      subject: message.subject,
+      text: message.text,
+      html: message.html
+    })
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Resend HTTP ${response.status} (${result?.name || "erro desconhecido"})`);
+  }
+  if (!result.id) throw new Error("Resend não retornou o identificador do e-mail.");
+  return { id: result.id, status: response.status };
 }
 
 export function buildVerificationEmail({ name, verificationUrl }) {
@@ -58,21 +77,16 @@ export async function sendVerificationEmail({ name, email, token }) {
   const verificationUrl = `${APP_URL.replace(/\/+$/, "")}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
   const message = { ...buildVerificationEmail({ name, verificationUrl }), to: email };
 
-  const mailer = transporter();
-  if (!mailer) {
-    console.warn("SMTP não configurado. E-mail de confirmação não enviado para", email);
-    return { sent: false };
+  if (!RESEND_API_KEY || !MAIL_FROM) {
+    console.warn("Resend não configurado. Defina RESEND_API_KEY e MAIL_FROM para enviar e-mails de confirmação.");
+    return { accepted: false };
   }
   try {
-    const result = await mailer.sendMail(message);
-    console.info("Resposta do servidor SMTP para e-mail de confirmação:", {
-      responseCode: result.responseCode,
-      acceptedRecipients: result.accepted.length,
-      rejectedRecipients: result.rejected.length
-    });
-    return { sent: true };
+    const result = await sendWithResend(message, RESEND_API_KEY);
+    console.info("Resend aceitou o e-mail de confirmação:", { status: result.status, emailId: result.id });
+    return { accepted: true };
   } catch (error) {
-    console.error("Falha ao enviar e-mail de confirmação:", error.message);
-    return { sent: false };
+    console.error("Falha ao enviar e-mail de confirmação pelo Resend:", error.message);
+    return { accepted: false };
   }
 }

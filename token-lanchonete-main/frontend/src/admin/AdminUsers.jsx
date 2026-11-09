@@ -139,9 +139,9 @@ function CreateUserModal({ onClose, onCreated }) {
     setSaving(true);
     try {
       const result = await api.createUser({ ...form, birthDate });
-      toast.success(result.emailSent
-        ? "Usuário cadastrado. O e-mail de confirmação foi enviado."
-        : "Cadastro salvo, mas o e-mail de confirmação não foi enviado. O usuário está na lista como pendente; confirme manualmente ou revise o SMTP.");
+      toast.success(result.emailAccepted
+        ? "Usuário cadastrado. O provedor aceitou o e-mail de confirmação; a entrega pode ser consultada no painel Resend."
+        : "Cadastro salvo, mas o provedor não aceitou o e-mail. Confira a configuração da Resend nos logs do Render.");
       onCreated();
     } catch (saveError) {
       setError(saveError.message);

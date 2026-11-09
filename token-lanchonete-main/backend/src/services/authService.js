@@ -119,7 +119,7 @@ export async function createUser(data, { actor, ip } = {}) {
 
   const delivery = await sendVerificationEmail({ name, email, token: verificationToken });
   const user = await queryOne("SELECT * FROM users WHERE id = ?", [id]);
-  return { user: publicUser(user), emailSent: delivery.sent };
+  return { user: publicUser(user), emailAccepted: delivery.accepted };
 }
 
 export async function verifyEmail(token) {

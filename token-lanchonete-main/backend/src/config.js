@@ -45,11 +45,8 @@ export const MERCADOPAGO_ACCESS_TOKEN = env.MERCADOPAGO_ACCESS_TOKEN || "";
 export const MERCADOPAGO_WEBHOOK_SECRET = env.MERCADOPAGO_WEBHOOK_SECRET || "";
 export const MERCADOPAGO_API_URL = env.MERCADOPAGO_API_URL || "https://api.mercadopago.com";
 
-export const SMTP_HOST = env.SMTP_HOST || "";
-export const SMTP_PORT = Number(env.SMTP_PORT || 587);
-export const SMTP_USER = env.SMTP_USER || "";
-export const SMTP_PASS = env.SMTP_PASS || "";
-export const MAIL_FROM = env.MAIL_FROM || SMTP_USER || "no-reply@tokenpedidos.com";
+export const RESEND_API_KEY = env.RESEND_API_KEY || "";
+export const MAIL_FROM = env.MAIL_FROM || "";
 
 export const UPLOADS_DIR = new URL("../uploads/", import.meta.url);
 export const VALID_STATUSES = ["aguardando", "preparando", "pronto", "entregue"];
