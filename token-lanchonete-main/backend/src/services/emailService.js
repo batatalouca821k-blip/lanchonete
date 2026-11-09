@@ -64,7 +64,12 @@ export async function sendVerificationEmail({ name, email, token }) {
     return { sent: false };
   }
   try {
-    await mailer.sendMail(message);
+    const result = await mailer.sendMail(message);
+    console.info("Resposta do servidor SMTP para e-mail de confirmação:", {
+      responseCode: result.responseCode,
+      acceptedRecipients: result.accepted.length,
+      rejectedRecipients: result.rejected.length
+    });
     return { sent: true };
   } catch (error) {
     console.error("Falha ao enviar e-mail de confirmação:", error.message);
